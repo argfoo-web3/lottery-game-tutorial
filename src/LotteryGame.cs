@@ -1,0 +1,191 @@
+using AElf.Contracts.MultiToken;
+using AElf.Sdk.CSharp;
+using AElf.Types;
+using Google.Protobuf.WellKnownTypes;
+
+namespace AElf.Contracts.LotteryGame
+{
+    // Contract class must inherit the base class generated from the proto file
+    public class LotteryGame : LotteryGameContainer.LotteryGameBase
+    {
+        private const string TokenContractAddress = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx"; // tDVW token contract address
+        private const string TokenSymbol = "ELF";
+        private const long MinimumPlayAmount = 1_000_000; // 0.01 ELF
+        private const long MaximumPlayAmount = 1_000_000_000; // 10 ELF
+        
+        // Initializes the contract
+        public override Empty Initialize(Empty input)
+        {
+            // Check if the contract is already initialized
+            Assert(State.Initialized.Value == false, "Already initialized.");
+            // Set the contract state
+            State.Initialized.Value = true;
+            // Set the owner address
+            State.Owner.Value = Context.Sender;
+            
+            // Initialize the token contract
+            State.TokenContract.Value = Address.FromBase58(TokenContractAddress);
+            //State.TokenContract.Value = Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
+            
+            return new Empty();
+        }
+        
+        // Plays the lottery game with a specified amount of tokens.
+        // The method checks if the play amount is within the limit.
+        // If the player wins, tokens are transferred from the contract to the sender and a PlayOutcomeEvent is fired with the won amount.
+        // If the player loses, tokens are transferred from the sender to the contract and a PlayOutcomeEvent is fired with the lost amount.
+        public override Empty Play(Int64Value input)
+        {
+            var playAmount = input.Value;
+            
+            // Check if input amount is within the limit
+            Assert(playAmount is >= MinimumPlayAmount and <= MaximumPlayAmount, "Invalid play amount.");
+            
+            if(IsWinner())
+            {
+                // Transfer the token from the contract to the sender
+                State.TokenContract.TransferFrom.Send(new TransferFromInput
+                {
+                    From = Context.Self,
+                    To = Context.Sender,
+                    Symbol = TokenSymbol,
+                    Amount = playAmount
+                });
+                
+                // Emit an event to notify listeners about the outcome
+                Context.Fire(new PlayOutcomeEvent
+                {
+                    Amount = input.Value,
+                    Won = playAmount
+                });
+            }
+            else
+            {
+                // Transfer the token from the sender to the contract
+                State.TokenContract.TransferFrom.Send(new TransferFromInput
+                {
+                    From = Context.Sender,
+                    To = Context.Self,
+                    Symbol = TokenSymbol,
+                    Amount = playAmount
+                });
+                
+                // Emit an event to notify listeners about the outcome
+                Context.Fire(new PlayOutcomeEvent
+                {
+                    Amount = input.Value,
+                    Won = -playAmount
+                });
+            }
+            
+            return new Empty();
+        }
+        
+        // Determines if the player is a winner.
+        // This method generates a random number based on the current block height and checks if it's equal to 0.
+        // If the random number is 0, the player is considered a winner.
+        private bool IsWinner()
+        {
+            var randomNumber = Context.CurrentHeight % 2;
+            return randomNumber == 0;
+        }
+        
+        // Withdraws a specified amount of tokens from the contract.
+        // This method can only be called by the owner of the contract.
+        // After the tokens are transferred, a WithdrawEvent is fired to notify any listeners about the withdrawal.
+        public override Empty Withdraw(Int64Value input)
+        {
+            // Check if the sender is the owner
+            Assert(Context.Sender == State.Owner.Value, "Unauthorized to withdraw.");
+            
+            // Transfer the token from the contract to the sender
+            State.TokenContract.TransferFrom.Send(new TransferFromInput
+            {
+                From = Context.Self,
+                To = Context.Sender,
+                Symbol = TokenSymbol,
+                Amount = input.Value
+            });
+            
+            // Emit an event to notify listeners about the withdrawal
+            Context.Fire(new WithdrawEvent
+            {
+                Amount = input.Value,
+                From = Context.Self,
+                To = State.Owner.Value
+            });
+            
+            return new Empty();
+        }
+        
+        // Deposits a specified amount of tokens into the contract.
+        // This method can only be called by the owner of the contract.
+        // After the tokens are transferred, a DepositEvent is fired to notify any listeners about the deposit.
+        public override Empty Deposit(Int64Value input)
+        {
+            // Check if the sender is the owner
+            Assert(Context.Sender == State.Owner.Value, "Unauthorized to deposit.");
+            
+            // Transfer the token from the sender to the contract
+            State.TokenContract.TransferFrom.Send(new TransferFromInput
+            {
+                From = Context.Sender,
+                To = Context.Self,
+                Symbol = TokenSymbol,
+                Amount = input.Value
+            });
+            
+            // Emit an event to notify listeners about the deposit
+            Context.Fire(new DepositEvent
+            {
+                Amount = input.Value,
+                From = Context.Sender,
+                To = Context.Self
+            });
+            
+            return new Empty();
+        }
+        
+        // Transfers the ownership of the contract to a new owner.
+        // This method can only be called by the current owner of the contract.
+        public override Empty TransferOwnership(Address input)
+        {
+            // Check if the sender is the owner
+            Assert(Context.Sender == State.Owner.Value, "Unauthorized to transfer ownership.");
+            
+            // Set the new owner address
+            State.Owner.Value = input;
+            
+            return new Empty();
+        }
+
+        // A method that read the contract's play amount limit
+        public override PlayAmountLimitMessage GetPlayAmountLimit(Empty input)
+        {
+            // Wrap the value in the return type
+            return new PlayAmountLimitMessage
+            {
+                MinimumAmount = MinimumPlayAmount,
+                MaximumAmount = MaximumPlayAmount
+            };
+        }
+        
+        // A method that read the contract's current balance
+        public override Int64Value GetContractBalance(Empty input)
+        {
+            // Get the balance of the contract
+            var balance = State.TokenContract.GetBalance.Call(new GetBalanceInput
+            {
+                Owner = Context.Self,
+                Symbol = TokenSymbol
+            }).Balance;
+            
+            // Wrap the value in the return type
+            return new Int64Value
+            {
+                Value = balance
+            };
+        }
+    }
+    
+}
