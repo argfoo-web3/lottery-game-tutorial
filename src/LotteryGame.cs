@@ -96,15 +96,6 @@ namespace AElf.Contracts.LotteryGame
             return new Empty();
         }
         
-        // Determines if the player is a winner.
-        // This method generates a random number based on the current block height and checks if it's equal to 0.
-        // If the random number is 0, the player is considered a winner.
-        private bool IsWinner()
-        {
-            var randomNumber = Context.CurrentHeight % 2;
-            return randomNumber == 0;
-        }
-        
         // Withdraws a specified amount of tokens from the contract.
         // This method can only be called by the owner of the contract.
         // After the tokens are transferred, a WithdrawEvent is fired to notify any listeners about the withdrawal.
@@ -202,6 +193,15 @@ namespace AElf.Contracts.LotteryGame
         public override StringValue GetOwner(Empty input)
         {
             return State.Owner.Value == null ? new StringValue() : new StringValue {Value = State.Owner.Value.ToBase58()};
+        }
+        
+        // Determines if the player is a winner.
+        // This method generates a random number based on the current block height and checks if it's equal to 0.
+        // If the random number is 0, the player is considered a winner.
+        private bool IsWinner()
+        {
+            var randomNumber = Context.CurrentHeight % 2;
+            return randomNumber == 0;
         }
         
         // This method is used to ensure that only the owner of the contract can perform certain actions.
