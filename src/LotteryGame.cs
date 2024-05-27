@@ -110,8 +110,7 @@ namespace AElf.Contracts.LotteryGame
         // After the tokens are transferred, a WithdrawEvent is fired to notify any listeners about the withdrawal.
         public override Empty Withdraw(Int64Value input)
         {
-            // Check if the sender is the owner
-            Assert(Context.Sender == State.Owner.Value, "Unauthorized to withdraw.");
+            AssertIsOwner();
             
             // Transfer the token from the contract to the sender
             State.TokenContract.Transfer.Send(new TransferInput
@@ -137,8 +136,7 @@ namespace AElf.Contracts.LotteryGame
         // After the tokens are transferred, a DepositEvent is fired to notify any listeners about the deposit.
         public override Empty Deposit(Int64Value input)
         {
-            // Check if the sender is the owner
-            Assert(Context.Sender == State.Owner.Value, "Unauthorized to deposit.");
+            AssertIsOwner();
             
             // Transfer the token from the sender to the contract
             State.TokenContract.TransferFrom.Send(new TransferFromInput
@@ -164,8 +162,7 @@ namespace AElf.Contracts.LotteryGame
         // This method can only be called by the current owner of the contract.
         public override Empty TransferOwnership(Address input)
         {
-            // Check if the sender is the owner
-            Assert(Context.Sender == State.Owner.Value, "Unauthorized to transfer ownership.");
+            AssertIsOwner();
             
             // Set the new owner address
             State.Owner.Value = input;
@@ -205,6 +202,13 @@ namespace AElf.Contracts.LotteryGame
         public override StringValue GetOwner(Empty input)
         {
             return State.Owner.Value == null ? new StringValue() : new StringValue {Value = State.Owner.Value.ToBase58()};
+        }
+        
+        // This method is used to ensure that only the owner of the contract can perform certain actions.
+        // If the context sender is not the owner, an exception is thrown with the message "Unauthorized to perform the action."
+        private void AssertIsOwner()
+        {
+            Assert(Context.Sender == State.Owner.Value, "Unauthorized to perform the action.");
         }
     }
     
