@@ -44,9 +44,8 @@ namespace AElf.Contracts.LotteryGame
             if(IsWinner())
             {
                 // Transfer the token from the contract to the sender
-                State.TokenContract.TransferFrom.Send(new TransferFromInput
+                State.TokenContract.Transfer.Send(new TransferInput
                 {
-                    From = Context.Self,
                     To = Context.Sender,
                     Symbol = TokenSymbol,
                     Amount = playAmount
@@ -99,9 +98,8 @@ namespace AElf.Contracts.LotteryGame
             Assert(Context.Sender == State.Owner.Value, "Unauthorized to withdraw.");
             
             // Transfer the token from the contract to the sender
-            State.TokenContract.TransferFrom.Send(new TransferFromInput
+            State.TokenContract.Transfer.Send(new TransferInput
             {
-                From = Context.Self,
                 To = Context.Sender,
                 Symbol = TokenSymbol,
                 Amount = input.Value
@@ -185,6 +183,12 @@ namespace AElf.Contracts.LotteryGame
             {
                 Value = balance
             };
+        }
+
+        // A method that read the contract's owner
+        public override StringValue GetOwner(Empty input)
+        {
+            return State.Owner.Value == null ? new StringValue() : new StringValue {Value = State.Owner.Value.ToBase58()};
         }
     }
     
