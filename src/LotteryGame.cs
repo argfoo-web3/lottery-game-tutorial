@@ -41,6 +41,22 @@ namespace AElf.Contracts.LotteryGame
             // Check if input amount is within the limit
             Assert(playAmount is >= MinimumPlayAmount and <= MaximumPlayAmount, "Invalid play amount.");
             
+            // Check if the sender has enough tokens
+            var balance = State.TokenContract.GetBalance.Call(new GetBalanceInput
+            {
+                Owner = Context.Sender,
+                Symbol = TokenSymbol
+            }).Balance;
+            Assert(balance >= playAmount, "Insufficient balance.");
+            
+            // Check if the contract has enough tokens
+            var contractBalance = State.TokenContract.GetBalance.Call(new GetBalanceInput
+            {
+                Owner = Context.Self,
+                Symbol = TokenSymbol
+            }).Balance;
+            Assert(contractBalance >= playAmount, "Insufficient contract balance.");
+            
             if(IsWinner())
             {
                 // Transfer the token from the contract to the sender
