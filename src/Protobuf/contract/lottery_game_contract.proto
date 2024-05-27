@@ -13,7 +13,6 @@ service LotteryGame {
   option (aelf.csharp_state) = "AElf.Contracts.LotteryGame.LotteryGameState";
   option (aelf.base) = "Protobuf/reference/acs12.proto";
 
-  // initializes the owner of the contract
   rpc Initialize (google.protobuf.Empty) returns (google.protobuf.Empty) {
   }
 
@@ -42,14 +41,14 @@ service LotteryGame {
   }
 }
 
-// An event that will be emitted from contract method call
+// An event that will be emitted from contract method call when Play is called.
 message PlayOutcomeEvent {
   option (aelf.is_event) = true;
   int64 amount = 1;
   int64 won = 2;
 }
 
-// An event that will be emitted from contract method call
+// An event that will be emitted from contract method call when Withdraw is called.
 message WithdrawEvent {
   option (aelf.is_event) = true;
   int64 amount = 1;
@@ -57,7 +56,7 @@ message WithdrawEvent {
   aelf.Address to = 3;
 }
 
-// An event that will be emitted from contract method call
+// An event that will be emitted from contract method call when Deposit is called.
 message DepositEvent {
   option (aelf.is_event) = true;
   int64 amount = 1;
@@ -65,7 +64,7 @@ message DepositEvent {
   aelf.Address to = 3;
 }
 
-// An event that will be emitted from contract method call
+// The message containing the play amount limits
 message PlayAmountLimitMessage {
   int64 minimumAmount = 1;
   int64 maximumAmount = 2;
