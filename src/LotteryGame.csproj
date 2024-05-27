@@ -4,6 +4,7 @@
         <RootNamespace>AElf.Contracts.LotteryGame</RootNamespace>
         <IsContract>true</IsContract>
         <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+        <AssemblyVersion>1.0.0.1</AssemblyVersion>
     </PropertyGroup>
     <PropertyGroup>
         <ObjPath>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/</ObjPath>
