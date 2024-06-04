@@ -205,10 +205,11 @@ namespace AElf.Contracts.LotteryGame
         }
         
         // Determines if the player is a winner.
-        // This method generates a random number based on the current block height and checks if it's equal to 0.
+        // This method generates a random number based on the random hash input and checks if it's equal to 0.
         // If the random number is 0, the player is considered a winner.
         private bool IsWinner(Hash randomHash)
         {
+            // Improve random distribution by XORing with the origin transaction ID
             var randomHex = HashHelper.XorAndCompute(randomHash, Context.OriginTransactionId).ToHex();
             var randomInt = int.Parse(randomHex.Substring(0, 8), System.Globalization.NumberStyles.HexNumber);
             var result = randomInt % 2;
