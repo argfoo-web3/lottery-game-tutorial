@@ -25,7 +25,9 @@ namespace AElf.Contracts.LotteryGame
             
             // Initialize the token contract
             State.TokenContract.Value = Address.FromBase58(TokenContractAddress);
-            //State.TokenContract.Value = Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
+            // The below code can be used to replace the above line. The above is a showcase of how you can reference to any contracts.
+            // State.TokenContract.Value = Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
+            State.ConsensusContract.Value = Context.GetContractAddressByName(SmartContractConstants.ConsensusContractSystemName);
             
             return new Empty();
         }
@@ -57,7 +59,14 @@ namespace AElf.Contracts.LotteryGame
             }).Balance;
             Assert(contractBalance >= playAmount, "Insufficient contract balance.");
             
-            if(IsWinner())
+            // Get a random hash and check if it is available
+            var randomHash = State.ConsensusContract.GetRandomHash.Call(new Int64Value
+            {
+                Value = Context.CurrentHeight
+            });
+            Assert(randomHash != null && !randomHash.Value.IsNullOrEmpty(), "Still preparing your game result, please wait for a while...");
+            
+            if(IsWinner(randomHash))
             {
                 // Transfer the token from the contract to the sender
                 State.TokenContract.Transfer.Send(new TransferInput
@@ -198,10 +207,12 @@ namespace AElf.Contracts.LotteryGame
         // Determines if the player is a winner.
         // This method generates a random number based on the current block height and checks if it's equal to 0.
         // If the random number is 0, the player is considered a winner.
-        private bool IsWinner()
+        private bool IsWinner(Hash randomHash)
         {
-            var randomNumber = Context.CurrentHeight % 2;
-            return randomNumber == 0;
+            var randomHex = HashHelper.XorAndCompute(randomHash, Context.OriginTransactionId).ToHex();
+            var randomInt = int.Parse(randomHex.Substring(0, 8), System.Globalization.NumberStyles.HexNumber);
+            var result = randomInt % 2;
+            return result == 0;
         }
         
         // This method is used to ensure that only the owner of the contract can perform certain actions.
