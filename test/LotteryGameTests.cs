@@ -45,21 +45,12 @@ namespace AElf.Contracts.LotteryGame
             var playInput = new Int64Value() { Value = playAmount };
 
             // Approve spending on the lottery contract
-            await TokenContractStub.Approve.SendAsync(new ApproveInput
-            {
-                Spender = ContractAddress,
-                Symbol = "ELF",
-                Amount = 100_00000000
-            });
+            await ApproveSpendingAsync(100_00000000);
             // Setup contract balance
             await LotteryGameStub.Deposit.SendAsync(new Int64Value { Value = 50_00000000 });
             // Simulate token balance before playing
-            var initialSenderBalance = TokenContractStub.GetBalance.CallAsync(new GetBalanceInput
-            {
-                Owner = DefaultAccount.Address,
-                Symbol = "ELF"
-            }).Result.Balance;
-            var initialContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var initialSenderBalance = await GetTokenBalanceAsync(DefaultAccount.Address);
+            var initialContractBalance = await GetContractBalanceAsync();
 
             // Act
             var result = await LotteryGameStub.Play.SendAsync(playInput);
@@ -68,12 +59,8 @@ namespace AElf.Contracts.LotteryGame
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
             // Check token transfer and balance update
-            var finalSenderBalance = TokenContractStub.GetBalance.CallAsync(new GetBalanceInput
-            {
-                Owner = DefaultAccount.Address,
-                Symbol = "ELF"
-            }).Result.Balance;
-            var finalContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var finalSenderBalance = await GetTokenBalanceAsync(DefaultAccount.Address);
+            var finalContractBalance = await GetContractBalanceAsync();
             
             var senderDiffBalance = finalSenderBalance - initialSenderBalance;
             var contractDiffBalance = finalContractBalance - initialContractBalance;
@@ -120,17 +107,12 @@ namespace AElf.Contracts.LotteryGame
             await LotteryGameStub.Initialize.SendAsync(new Empty());
             
             // Approve spending on the lottery contract
-            await TokenContractStub.Approve.SendAsync(new ApproveInput
-            {
-                Spender = ContractAddress,
-                Symbol = "ELF",
-                Amount = 100_00000000
-            });
+            await ApproveSpendingAsync(100_00000000);
 
             const long depositAmount = 10_000_000; // 0.1 ELF
             var depositInput = new Int64Value() { Value = depositAmount };
 
-            var initialContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var initialContractBalance = await GetContractBalanceAsync();
             
             // Act
             var result = await LotteryGameStub.Deposit.SendAsync(depositInput);
@@ -139,7 +121,7 @@ namespace AElf.Contracts.LotteryGame
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
             // Check balance update
-            var finalContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var finalContractBalance = await GetContractBalanceAsync();
             finalContractBalance.ShouldBe(initialContractBalance + depositAmount);
 
             // Check if the event is emitted
@@ -154,12 +136,7 @@ namespace AElf.Contracts.LotteryGame
             await LotteryGameStub.Initialize.SendAsync(new Empty());
             
             // Approve spending on the lottery contract
-            await TokenContractStub.Approve.SendAsync(new ApproveInput
-            {
-                Spender = ContractAddress,
-                Symbol = "ELF",
-                Amount = 100_00000000
-            });
+            await ApproveSpendingAsync(100_00000000);
 
             const long depositAmount = 10_000_000; // 0.1 ELF
             var depositInput = new Int64Value() { Value = depositAmount };
@@ -168,12 +145,8 @@ namespace AElf.Contracts.LotteryGame
             const long withdrawAmount = 5_000_000; // 0.05 ELF
             var withdrawInput = new Int64Value() { Value = withdrawAmount };
 
-            var initialSenderBalance = TokenContractStub.GetBalance.CallAsync(new GetBalanceInput
-            {
-                Owner = DefaultAccount.Address,
-                Symbol = "ELF"
-            }).Result.Balance;
-            var initialContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var initialSenderBalance = await GetTokenBalanceAsync(DefaultAccount.Address);
+            var initialContractBalance = await GetContractBalanceAsync();
             
             // Act
             var result = await LotteryGameStub.Withdraw.SendAsync(withdrawInput);
@@ -182,12 +155,8 @@ namespace AElf.Contracts.LotteryGame
             result.TransactionResult.Status.ShouldBe(TransactionResultStatus.Mined);
 
             // Check balance update
-            var finalSenderBalance = TokenContractStub.GetBalance.CallAsync(new GetBalanceInput
-            {
-                Owner = DefaultAccount.Address,
-                Symbol = "ELF"
-            }).Result.Balance;
-            var finalContractBalance = LotteryGameStub.GetContractBalance.CallAsync(new Empty()).Result.Value;
+            var finalSenderBalance = await GetTokenBalanceAsync(DefaultAccount.Address);
+            var finalContractBalance = await GetContractBalanceAsync();
 
             finalSenderBalance.ShouldBe(initialSenderBalance + withdrawAmount);
             finalContractBalance.ShouldBe(initialContractBalance - withdrawAmount);
@@ -208,6 +177,30 @@ namespace AElf.Contracts.LotteryGame
 
             // Act & Assert
             Should.Throw<Exception>(async () => await LotteryGameStub.Withdraw.SendAsync(withdrawInput));
+        }
+        
+        private async Task ApproveSpendingAsync(long amount)
+        {
+            await TokenContractStub.Approve.SendAsync(new ApproveInput
+            {
+                Spender = ContractAddress,
+                Symbol = "ELF",
+                Amount = amount
+            });
+        }
+
+        private async Task<long> GetTokenBalanceAsync(Address owner)
+        {
+            return (await TokenContractStub.GetBalance.CallAsync(new GetBalanceInput
+            {
+                Owner = owner,
+                Symbol = "ELF"
+            })).Balance;
+        }
+
+        private async Task<long> GetContractBalanceAsync()
+        {
+            return (await LotteryGameStub.GetContractBalance.CallAsync(new Empty())).Value;
         }
     }
 }
