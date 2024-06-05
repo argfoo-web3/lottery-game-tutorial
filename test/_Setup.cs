@@ -1,4 +1,5 @@
-﻿using AElf.Cryptography.ECDSA;
+﻿using AElf.Contracts.MultiToken;
+using AElf.Cryptography.ECDSA;
 using AElf.Testing.TestBase;
 
 namespace AElf.Contracts.LotteryGame
@@ -14,12 +15,14 @@ namespace AElf.Contracts.LotteryGame
     {
         // The Stub class for unit testing
         internal readonly LotteryGameContainer.LotteryGameStub LotteryGameStub;
+        internal readonly TokenContractContainer.TokenContractStub TokenContractStub;
         // A key pair that can be used to interact with the contract instance
         private ECKeyPair DefaultKeyPair => Accounts[0].KeyPair;
 
         public TestBase()
         {
             LotteryGameStub = GetLotteryGameContractStub(DefaultKeyPair);
+            TokenContractStub = GetTester<TokenContractContainer.TokenContractStub>(TokenContractAddress, DefaultKeyPair);
         }
 
         private LotteryGameContainer.LotteryGameStub GetLotteryGameContractStub(ECKeyPair senderKeyPair)
